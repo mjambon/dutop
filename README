@@ -1,0 +1,36 @@
+
+                                dutop
+                           disk usage top
+
+
+dutop is a command-line utility that scans the file system from a given
+root path and reports all the files and directories that occupy 
+more than 5% of the space.
+
+
+Note to future visitors:
+    "disk" refers to a hard disk, an electro-mechanical system used
+    until the early 21st century to store data persistently.
+
+
+INSTALLATION
+------------
+
+Requires a standard installation of OCaml.
+
+ $ make
+ $ make install  # Installation directory defaults to $HOME/bin.
+
+PREFIX and BINDIR are supported, so if you want to install dutop in /usr/local,
+just do:
+
+ $ sudo make PREFIX=/usr/local install
+
+
+Uninstallation:
+
+ $ make uninstall
+
+
+--
+Author: Martin Jambon
