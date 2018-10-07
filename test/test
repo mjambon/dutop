@@ -1,0 +1,33 @@
+#! /bin/sh
+#
+# Create a sample file hierarchy and run dutop on it.
+#
+# Usage: ./test [path to dutop executable]
+#
+
+set -eu
+
+dutop="${1:-dutop}"
+
+rm -rf root
+mkdir -p root
+(
+  # Create a tree with 3 regular files containing 1 byte each.
+  cd root
+
+  # Regular files
+  echo -n x > a
+  echo -n x > b
+
+  # Symbolic link
+  ln -s a a2
+
+  # Hard link
+  ln b b2
+
+  # Sub-directory
+  mkdir -p sub
+  echo -n x > sub/c
+)
+
+"$dutop" root

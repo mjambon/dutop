@@ -1,31 +1,21 @@
-VERSION = 1.0.0
+.PHONY: default build install uninstall test clean
 
-dutop: dutop_version.ml dutop.ml
-	ocamlopt -o dutop -annot unix.cmxa dutop_version.ml dutop.ml
+default: build
 
-dutop_version.ml: Makefile
-	echo 'let version = "$(VERSION)"' > dutop_version.ml
+build:
+	dune build
 
-ifndef PREFIX
-PREFIX = $(HOME)
-endif
+test:
+	dune runtest -f
 
-ifndef BINDIR
-BINDIR = $(PREFIX)/bin
-endif
-
-.PHONY: install uninstall
 install:
-	@if [ -f $(BINDIR)/dutop ]; \
-	  then echo "Error: run '$(MAKE) uninstall' first."; \
-	  else \
-	    echo "Installing dutop into $(BINDIR)"; \
-	    cp dutop $(BINDIR); \
-	fi
+	dune install
 
 uninstall:
-	rm $(BINDIR)/dutop
+	dune uninstall
 
-.PHONY: clean
 clean:
-	rm -f *.cm[iox] *.o *.annot *~ dutop dutop_version.ml
+	dune clean
+# Optionally, remove all files/folders ignored by git as defined
+# in .gitignore (-X).
+	git clean -dfXq

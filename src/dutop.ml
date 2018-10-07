@@ -3,6 +3,7 @@
 open Printf
 open Unix.LargeFile
 
+let version = "1.1.0"
 let debug = ref false
 
 type path = string
@@ -40,7 +41,8 @@ let lookup ~follow path =
           lstat path
       with e ->
         if !warn then
-          warning (sprintf "Cannot access info on file %s" path);
+          warning (sprintf "Cannot access info on file %S: %s"
+                     path (Printexc.to_string e));
         raise Exit
     in
     let inode = x.st_ino in
@@ -62,7 +64,8 @@ let lookup ~follow path =
               try Sys.readdir path
               with e ->
                 if !warn then
-                  warning (sprintf "Cannot read directory %s" path);
+                  warning (sprintf "Cannot read directory %S: %s"
+                             path (Printexc.to_string e));
                 raise Exit
             in
             let children =
@@ -138,13 +141,13 @@ let list_of_string s =
 
 let string_of_list l =
   let n = List.length l in
-  let s = String.create n in
+  let s = Bytes.create n in
   let l = ref l in
   for i = 0 to n - 1 do
-    s.[i] <- List.hd !l;
+    Bytes.set s i (List.hd !l);
     l := List.tl !l;
   done;
-  s
+  Bytes.to_string s
 
 let comma_string_of_int64 x =
   assert (x >= 0L);
@@ -225,13 +228,13 @@ let main () =
     "-r", Arg.Set reverse,
     "
           Reverse sort.";
-    
+
     "-s", Arg.Unit (fun () -> sort_by := Size),
     "
           Sort by increasing size (default).";
 
     "-version",
-    Arg.Unit (fun () -> print_endline Dutop_version.version; exit 0),
+    Arg.Unit (fun () -> print_endline version; exit 0),
     "
           Print program's version and exit.";
 

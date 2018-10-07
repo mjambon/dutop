@@ -1,0 +1,8 @@
+(rule
+ (targets test.out)
+ (action (with-stdout-to test.out (run ./test %{bin:dutop}))))
+
+(alias
+ (name runtest)
+ (package dutop)
+ (action (diff test.expected.out test.out)))

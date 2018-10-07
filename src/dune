@@ -1,0 +1,5 @@
+(executables
+ (names dutop)
+ (public_names dutop)
+ (libraries unix)
+ (package dutop))
