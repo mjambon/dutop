@@ -86,4 +86,9 @@ Uninstallation:
 $ make uninstall
 ```
 
-Author: Martin Jambon
+Contributors
+--
+
+Dutop was designed and created by Martin Jambon.
+This is free software developed by volunteers.
+Help is always appreciated.
