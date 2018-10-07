@@ -11,7 +11,7 @@ type kind = File | Dir
 
 type info = {
   path : path;
-  inode : int;
+  inode : int * int; (* device number, inode number *)
   kind : kind;
   child_paths : path list;
   size : int64;
@@ -45,7 +45,7 @@ let lookup ~follow path =
                      path (Printexc.to_string e));
         raise Exit
     in
-    let inode = x.st_ino in
+    let inode = (x.st_dev, x.st_ino) in
     let kind =
       match x.st_kind with
           Unix.S_DIR -> Dir
