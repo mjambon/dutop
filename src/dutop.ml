@@ -31,7 +31,7 @@ let warn = ref false
 let warning s =
   eprintf "Warning: %s\n%!" s
 
-let lookup ~follow path =
+let lookup ~follow ~root_device path =
   try
     let x =
       try
@@ -45,7 +45,12 @@ let lookup ~follow path =
                      path (Printexc.to_string e));
         raise Exit
     in
-    let inode = (x.st_dev, x.st_ino) in
+    let device = x.st_dev in
+    (match root_device with
+     | Some dev when dev <> device -> raise Exit
+     | _ -> ()
+    );
+    let inode = (device, x.st_ino) in
     let kind =
       match x.st_kind with
           Unix.S_DIR -> Dir
@@ -81,36 +86,44 @@ let lookup ~follow path =
     Some { path; inode; kind; child_paths; size }
   with _ -> None
 
-let rec scan_filesystem ?(follow = false) inodes path =
-  match lookup ~follow path with
-      Some info ->
-        let hard_link =
-          try
-            Some (Hashtbl.find inodes info.inode)
-          with Not_found ->
-            Hashtbl.add inodes info.inode path;
-            None
-        in
-        let child_nodes =
-          List.fold_left (
-            fun acc path ->
-              match scan_filesystem inodes path with
-                  None -> acc
-                | Some x -> x :: acc
-          ) [] info.child_paths
-        in
-        let cumulated_size =
-          List.fold_left (
-            fun acc x ->
-              if x.hard_link = None then
-                Int64.add acc x.cumulated_size
-              else
-                acc
-          ) info.size child_nodes
-        in
-        Some { info; child_nodes; cumulated_size; hard_link }
+let get_root_device ~follow path =
+  match lookup ~follow ~root_device:None path with
+  | Some info ->
+      let device, _inode = info.inode in
+      Some device
+  | None ->
+      None
 
-    | None -> None
+let rec scan_filesystem ?(follow = false) ~root_device inodes path =
+  match lookup ~follow ~root_device path with
+  | Some info ->
+    let hard_link =
+      try
+        Some (Hashtbl.find inodes info.inode)
+      with Not_found ->
+        Hashtbl.add inodes info.inode path;
+        None
+    in
+    let child_nodes =
+      List.fold_left (
+        fun acc path ->
+          match scan_filesystem ~root_device inodes path with
+          | None -> acc
+          | Some x -> x :: acc
+      ) [] info.child_paths
+    in
+    let cumulated_size =
+      List.fold_left (
+        fun acc x ->
+          if x.hard_link = None then
+            Int64.add acc x.cumulated_size
+          else
+            acc
+      ) info.size child_nodes
+    in
+    Some { info; child_nodes; cumulated_size; hard_link }
+
+  | None -> None
 
 let rec select_big_nodes min_size acc node =
   List.fold_left (
@@ -121,9 +134,19 @@ let rec select_big_nodes min_size acc node =
         acc
   ) acc node.child_nodes
 
-let get_selection ~deref_root min_fraction root_path =
+let get_selection ~deref_root:follow ~ignore_mounts min_fraction root_path =
+  let root_device =
+    match ignore_mounts with
+    | true ->
+        get_root_device ~follow root_path
+    | false ->
+        None
+  in
   match
-    scan_filesystem ~follow: deref_root (Hashtbl.create 10000) root_path
+    scan_filesystem
+      ~follow
+      ~root_device
+      (Hashtbl.create 10000) root_path
   with
       None -> 0L, []
     | Some x ->
@@ -174,9 +197,9 @@ let print_info_line total_size x =
          None -> ""
        | Some s -> sprintf " [%s]" s)
 
-let run bare deref_root min_fraction reverse sort_by root_path =
+let run bare deref_root ignore_mounts min_fraction reverse sort_by root_path =
   let total_size, selection =
-    get_selection ~deref_root min_fraction root_path in
+    get_selection ~deref_root ~ignore_mounts min_fraction root_path in
   let cmp =
     match sort_by with
         Name ->
@@ -197,6 +220,7 @@ let run bare deref_root min_fraction reverse sort_by root_path =
 let main () =
   let bare = ref false in
   let deref_root = ref true in
+  let ignore_mounts = ref false in
   let min_fraction = ref 0.05 in
   let reverse = ref false in
   let sort_by = ref Size in
@@ -214,6 +238,10 @@ let main () =
           The default behavior is to dereference the root path.
           Other symlinks than the root are never dereferenced regardless
           of this setting.";
+
+    "-i", Arg.Set ignore_mounts,
+    "
+          Ignore files located on other devices than the root path.";
 
     "-m", Arg.Set_float min_fraction,
     "<floating point number between 0 and 1>
@@ -253,6 +281,6 @@ total space.
       Sys.argv.(0) Sys.argv.(0)
   in
   Arg.parse options anon_fun usage_msg;
-  run !bare !deref_root !min_fraction !reverse !sort_by !root
+  run !bare !deref_root !ignore_mounts !min_fraction !reverse !sort_by !root
 
 let () = main ()
