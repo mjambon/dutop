@@ -73,18 +73,11 @@ d 100.0%         8,309,946,131 /usr
 Installation
 --
 
-Requires a standard installation of OCaml.
+Requires a standard installation of OCaml and Dune.
 
 ```
 $ make
-$ make install  # Installation directory defaults to $HOME/bin.
-```
-
-PREFIX and BINDIR are supported, so if you want to install dutop in /usr/local,
-just do:
-
-```
-$ sudo make PREFIX=/usr/local install
+$ make install
 ```
 
 Uninstallation:
