@@ -3,7 +3,10 @@ dutop - disk usage top
 
 dutop is a command-line utility that scans the file system from a given
 root path and reports any the file or directory that occupies
-more than 5% of the space.
+more than 5% of the space. It answers the question:
+
+> Which single file or directory should I remove to reclaim significant
+> storage space?
 
 Example
 --
